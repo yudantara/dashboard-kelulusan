@@ -84,16 +84,12 @@
         let pieChartInstance = null;
         let barChartInstance = null;
 
-        // Pengecekan Kelengkapan: Mengakomodasi teks "Lengkap/Selesai", "Lengkap", "Selesai", "✓", dll.
         const isCompleted = (val) => {
             if (!val) return false;
             let str = val.trim().toLowerCase();
-            
-            // Kata kunci yang menandakan LENGKAP / SELESAI
-            const validKeywords = ['✓', 'v', 'selesai', 'lengkap', 'lengkap/selesai', 'lunas', 'ok', 'pass', 'l'];
+            const validKeywords = ['✓', 'v', 'selesai', 'lengkap', 'lunas', 'ok', 'pass', 'l'];
             
             if (validKeywords.some(kw => str.includes(kw))) {
-                // Pastikan tidak ada kata "belum" atau "tidak" di dalamnya
                 return !str.includes('belum') && !str.includes('tidak');
             }
             return false;
@@ -113,15 +109,18 @@
                         let cols = rows[i];
                         if (!cols || cols.length < 3) continue;
 
-                        let pkl = cols[3] ? cols[3].trim() : '';
-                        let magang = cols[4] ? cols[4].trim() : '';
-                        let kti = cols[5] ? cols[5].trim() : '';
-                        let osce = cols[6] ? cols[6].trim() : '';
-                        let ukom = cols[7] ? cols[7].trim() : '';
-                        let keuangan = cols[8] ? cols[8].trim() : '';
+                        // Berdasarkan screenshot Google Sheets:
+                        // Kolom 1 = NIM, Kolom 2 = Nama, Kolom 3 = Status Utama (LULUS), 
+                        // Kolom 4,5,6,7,8,9 = 6 Komponen (PKL, Magang, KTI, OSCE, UKOM, Keuangan)
+                        // Kolom 10 = IPK
+                        let pkl = cols[4] ? cols[4].trim() : '';
+                        let magang = cols[5] ? cols[5].trim() : '';
+                        let kti = cols[6] ? cols[6].trim() : '';
+                        let osce = cols[7] ? cols[7].trim() : '';
+                        let ukom = cols[8] ? cols[8].trim() : '';
+                        let keuangan = cols[9] ? cols[9].trim() : '';
 
                         let pendingList = [];
-
                         if (!isCompleted(pkl)) pendingList.push(pkl ? `PKL: ${pkl}` : `PKL`);
                         if (!isCompleted(magang)) pendingList.push(magang ? `Magang: ${magang}` : `Magang`);
                         if (!isCompleted(kti)) pendingList.push(kti ? `KTI: ${kti}` : `KTI`);
@@ -129,7 +128,7 @@
                         if (!isCompleted(ukom)) pendingList.push(ukom ? `UKOM: ${ukom}` : `UKOM`);
                         if (!isCompleted(keuangan)) pendingList.push(keuangan ? `Keuangan: ${keuangan}` : `Keuangan`);
 
-                        let rawIpk = cols[9] ? cols[9].replace(',', '.').trim() : '0';
+                        let rawIpk = cols[10] ? cols[10].replace(',', '.').trim() : '0';
                         let parsedIpk = parseFloat(rawIpk) || 0;
 
                         parsed.push({
