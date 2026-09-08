@@ -109,10 +109,10 @@
                         let cols = rows[i];
                         if (!cols || cols.length < 3) continue;
 
-                        // Berdasarkan screenshot Google Sheets:
-                        // Kolom 1 = NIM, Kolom 2 = Nama, Kolom 3 = Status Utama (LULUS), 
-                        // Kolom 4,5,6,7,8,9 = 6 Komponen (PKL, Magang, KTI, OSCE, UKOM, Keuangan)
-                        // Kolom 10 = IPK
+                        // Pemetaan Kolom Berdasarkan Google Sheets Terbaru:
+                        // cols[1] = NIM, cols[2] = Nama, cols[3] = Status Lulus (diabaikan)
+                        // cols[4] = PKL, cols[5] = Magang, cols[6] = KTI, cols[7] = OSCE, cols[8] = UKOM, cols[9] = Keuangan
+                        // cols[10] = IPK
                         let pkl = cols[4] ? cols[4].trim() : '';
                         let magang = cols[5] ? cols[5].trim() : '';
                         let kti = cols[6] ? cols[6].trim() : '';
