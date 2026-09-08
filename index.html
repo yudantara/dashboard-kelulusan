@@ -90,7 +90,8 @@
 
         const isCompleted = (val) => {
             if (!val) return false;
-            let str = val.trim().toLowerCase();
+            // Menghapus baris baru (enter) dari Google Sheets agar terbaca sejajar
+            let str = val.replace(/\n/g, ' ').trim().toLowerCase();
             const validKeywords = ['✓', 'v', 'selesai', 'lengkap', 'lengkap/selesai', 'lunas', 'ok', 'pass', 'l'];
             
             if (validKeywords.some(kw => str.includes(kw))) {
@@ -100,21 +101,33 @@
         };
 
         function loadData() {
-            document.getElementById('status-koneksi').innerText = "Mengambil data terbaru...";
+            document.getElementById('status-koneksi').innerText = "Mereset cache & Mengambil data...";
             document.getElementById('status-koneksi').className = "font-semibold text-yellow-600";
 
-            Papa.parse(googleSheetsCSVUrl, {
+            // TRICK CACHE BUSTER: Menambahkan timestamp acak di ujung link agar selalu mendownload versi terbaru
+            const freshUrl = googleSheetsCSVUrl + "&_t=" + new Date().getTime();
+
+            Papa.parse(freshUrl, {
                 download: true,
                 complete: function(results) {
                     let rows = results.data;
                     if (!rows || rows.length < 2) return;
 
-                    // Cari posisi kolom secara otomatis berdasarkan teks header
-                    let headers = rows[0].map(h => h ? h.trim().toLowerCase() : '');
+                    // Mencari baris header dengan lebih presisi (scan 10 baris pertama)
+                    let headerRowIndex = 0;
+                    for (let r = 0; r < Math.min(10, rows.length); r++) {
+                        let temp = rows[r].map(h => h ? h.toString().toLowerCase() : '');
+                        if (temp.some(h => h.includes('nim')) && temp.some(h => h.includes('nama'))) {
+                            headerRowIndex = r;
+                            break;
+                        }
+                    }
+
+                    let headers = rows[headerRowIndex].map(h => h ? h.toString().replace(/\n/g, ' ').trim().toLowerCase() : '');
                     
                     let idxNim = headers.findIndex(h => h.includes('nim'));
-                    let idxNama = headers.findIndex(h => h.includes('nama'));
-                    let idxPkl = headers.findIndex(h => h.includes('pkl'));
+                    let idxNama = headers.findIndex(h => h.includes('nama') || h.includes('mahasiswa'));
+                    let idxPkl = headers.findIndex(h => h.includes('pkl') || h.includes('praktek'));
                     let idxMagang = headers.findIndex(h => h.includes('magang'));
                     let idxKti = headers.findIndex(h => h.includes('kti') || h.includes('naskah'));
                     let idxOsce = headers.findIndex(h => h.includes('osce'));
@@ -122,9 +135,9 @@
                     let idxKeuangan = headers.findIndex(h => h.includes('keuangan') || h.includes('bayar'));
                     let idxIpk = headers.findIndex(h => h.includes('ipk'));
 
-                    // Fallback posisi kolom manual jika header tidak terdeteksi
-                    if (idxNim === -1) idxNim = 1;
-                    if (idxNama === -1) idxNama = 2;
+                    // Fallback jika judul tidak ketemu
+                    if (idxNim === -1) idxNim = 2;
+                    if (idxNama === -1) idxNama = 3;
                     if (idxPkl === -1) idxPkl = 4;
                     if (idxMagang === -1) idxMagang = 5;
                     if (idxKti === -1) idxKti = 6;
@@ -135,7 +148,8 @@
 
                     let parsed = [];
                     
-                    for (let i = 1; i < rows.length; i++) {
+                    // Parsing dimulai SETELAH baris header
+                    for (let i = headerRowIndex + 1; i < rows.length; i++) {
                         let cols = rows[i];
                         if (!cols || cols.length < 3) continue;
 
@@ -195,17 +209,15 @@
 
             data.forEach(row => {
                 if (row.isComplete) lengkap++; else kendala++;
-                if (row.ipk >= 3.51) cumlaude++; // Hitung jumlah Cumlaude
+                if (row.ipk >= 3.51) cumlaude++;
                 
                 names.push(row.nama.split(" ")[0]);
                 ipks.push(row.ipk);
                 
-                // Warna batang grafik: Merah jika IPK < 2.75, Biru jika >= 2.75
                 barColors.push(row.ipk < 2.75 ? '#ef4444' : '#3b82f6');
 
                 let ipkFormatted = Number(row.ipk).toFixed(2);
 
-                // Highlight khusus IPK < 2.75
                 let ipkBadge = (row.ipk < 2.75) 
                     ? `<span class="bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-md text-xs border border-red-300 inline-flex items-center gap-1">⚠️ ${ipkFormatted}</span>`
                     : `<span class="font-bold text-blue-900">${ipkFormatted}</span>`;
@@ -227,7 +239,7 @@
             document.getElementById('kpi-total').innerText = total;
             document.getElementById('kpi-lengkap').innerText = lengkap;
             document.getElementById('kpi-kendala').innerText = kendala;
-            document.getElementById('kpi-cumlaude').innerText = cumlaude; // Menampilkan angka Cumlaude
+            document.getElementById('kpi-cumlaude').innerText = cumlaude;
             document.getElementById('table-body').innerHTML = tableHtml;
 
             if (pieChartInstance) pieChartInstance.destroy();
