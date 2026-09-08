@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Presentasi Mahasiswa Real-Time</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-900">Dashboard Monitoring Kelulusan</h1>
+                <p class="text-gray-500 text-sm mt-1">
+                    Status Koneksi: <span id="status-koneksi" class="font-semibold text-yellow-600">Memuat Data...</span>
+                </p>
+            </div>
+            <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition shadow-sm flex items-center gap-2 self-start md:self-auto">
+                🔄 Refresh Data Sekarang
+            </button>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Mahasiswa</h3>
+                <p id="kpi-total" class="text-3xl font-bold text-gray-800">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-green-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Berkas Lengkap</h3>
+                <p id="kpi-lengkap" class="text-3xl font-bold text-green-600">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Terkendala Berkas KTI</h3>
+                <p id="kpi-kendala" class="text-3xl font-bold text-red-600">0</p>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-700 mb-4">Persentase Kelengkapan Berkas</h3>
+                <div class="w-full h-64 flex justify-center">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-700 mb-4">Perbandingan IPK Mahasiswa</h3>
+                <div class="w-full h-64">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="font-bold text-gray-700">Rincian Status & Catatan Berkas</h3>
+                <span class="text-xs text-gray-400">Otomatis terbarui dari Google Sheets</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-100">
+                            <th class="p-4">NIM</th>
+                            <th class="p-4">NAMA MAHASISWA</th>
+                            <th class="p-4">IPK</th>
+                            <th class="p-4">STATUS KELENGKAPAN KTI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="text-sm divide-y divide-gray-100">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LINK GOOGLE SHEETS KAMU DENGAN TANDA PETIK (SUDAH DIPERBAIKI)
+        const googleSheetsCSVUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_9UV6UKYLBOADKw9iqvyv5WetR3IXY5GW73grcv7ZHfS30bOTMpwElAfFooP_XuWMawcgQFPGXhcN/pub?gid=986781980&single=true&output=csv";
+
+        let pieChartInstance = null;
+        let barChartInstance = null;
+
+        const mockData = [
+            { nim: "21134010", nama: "AMARA SALSABILA", kti: "Selesai", ipk: 3.64 },
+            { nim: "21134029", nama: "FITRI HERDILA SARI", kti: "Selesai", ipk: 3.21 },
+            { nim: "21134078", nama: "RAEDHO BAGAS RADITYA NUGRAHA", kti: "Belum Upload Softfile Naskah KTI di SIAKAD", ipk: 2.65 },
+            { nim: "21134117", nama: "TIRA PUSPITASARI", kti: "Selesai", ipk: 3.02 },
+            { nim: "21134K002", nama: "DINDA ASA BRILIANNISA PRATITI", kti: "Belum Mengumpulkan di Perpustakaan", ipk: 3.17 },
+            { nim: "21134K003", nama: "ANSFRIDUS AVIL VINEKO WIYAN", kti: "Belum Mengumpulkan di Perpustakaan", ipk: 3.48 },
+            { nim: "21134K004", nama: "ABDURRAHMAN IBNU WIJAYANTO", kti: "Belum Mengumpulkan di Perpustakaan", ipk: 3.35 }
+        ];
+
+        function loadData() {
+            document.getElementById('status-koneksi').innerText = "Mengambil data terbaru...";
+            document.getElementById('status-koneksi').className = "font-semibold text-yellow-600";
+
+            Papa.parse(googleSheetsCSVUrl, {
+                download: true,
+                complete: function(results) {
+                    let rows = results.data;
+                    let parsed = [];
+                    
+                    for (let i = 1; i < rows.length; i++) {
+                        let cols = rows[i];
+                        if (!cols || cols.length < 3) continue;
+                        let ktiVal = cols[5] ? cols[5].trim() : '';
+                        let isDone = ktiVal === '✓' || ktiVal.toLowerCase() === 'v' || ktiVal.toLowerCase() === 'selesai' || ktiVal === '';
+                        
+                        parsed.push({
+                            nim: cols[1] || '-',
+                            nama: cols[2] || '-',
+                            kti: isDone ? 'Selesai' : ktiVal,
+                            ipk: parseFloat(cols[9]) || 0
+                        });
+                    }
+                    
+                    if (parsed.length > 0) {
+                        renderDashboard(parsed);
+                        document.getElementById('status-koneksi').innerText = "Terhubung & Real-Time";
+                        document.getElementById('status-koneksi').className = "font-semibold text-green-600";
+                    } else {
+                        renderDashboard(mockData);
+                    }
+                },
+                error: function(err) {
+                    renderDashboard(mockData);
+                    document.getElementById('status-koneksi').innerText = "Gagal memuat link. Menampilkan data demo.";
+                    document.getElementById('status-koneksi').className = "font-semibold text-red-600";
+                }
+            });
+        }
+
+        function renderDashboard(data) {
+            let total = data.length;
+            let lengkap = 0;
+            let kendala = 0;
+            let names = [];
+            let ipks = [];
+            let tableHtml = "";
+
+            data.forEach(row => {
+                let isLengkap = row.kti === "Selesai";
+                if (isLengkap) lengkap++; else kendala++;
+                
+                names.push(row.nama.split(" ")[0]);
+                ipks.push(row.ipk);
+
+                let statusBadge = isLengkap 
+                    ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
+                    : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.kti}</span>`;
+
+                tableHtml += `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4 font-mono text-gray-500">${row.nim}</td>
+                        <td class="p-4 font-semibold text-gray-800">${row.nama}</td>
+                        <td class="p-4 font-bold text-blue-900">${row.ipk}</td>
+                        <td class="p-4">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-lengkap').innerText = lengkap;
+            document.getElementById('kpi-kendala').innerText = kendala;
+            document.getElementById('table-body').innerHTML = tableHtml;
+
+            if (pieChartInstance) pieChartInstance.destroy();
+            if (barChartInstance) barChartInstance.destroy();
+
+            pieChartInstance = new Chart(document.getElementById('pieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Lengkap', 'Terkendala'],
+                    datasets: [{
+                        data: [lengkap, kendala],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            barChartInstance = new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [{
+                        label: 'IPK',
+                        data: ipks,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 2.0, max: 4.0 } }
+                }
+            });
+        }
+
+        loadData();
+        setInterval(loadData, 15000);
+    </script>
+</body>
+</html>
