@@ -87,7 +87,7 @@
         const isCompleted = (val) => {
             if (!val) return false;
             let str = val.trim().toLowerCase();
-            const validKeywords = ['✓', 'v', 'selesai', 'lengkap', 'lunas', 'ok', 'pass', 'l'];
+            const validKeywords = ['✓', 'v', 'selesai', 'lengkap', 'lengkap/selesai', 'lunas', 'ok', 'pass', 'l'];
             
             if (validKeywords.some(kw => str.includes(kw))) {
                 return !str.includes('belum') && !str.includes('tidak');
@@ -103,22 +103,48 @@
                 download: true,
                 complete: function(results) {
                     let rows = results.data;
+                    if (!rows || rows.length < 2) return;
+
+                    // Cari posisi kolom secara otomatis berdasarkan teks baris pertama (Header)
+                    let headers = rows[0].map(h => h ? h.trim().toLowerCase() : '');
+                    
+                    let idxNim = headers.findIndex(h => h.includes('nim'));
+                    let idxNama = headers.findIndex(h => h.includes('nama'));
+                    let idxPkl = headers.findIndex(h => h.includes('pkl'));
+                    let idxMagang = headers.findIndex(h => h.includes('magang'));
+                    let idxKti = headers.findIndex(h => h.includes('kti') || h.includes('naskah'));
+                    let idxOsce = headers.findIndex(h => h.includes('osce'));
+                    let idxUkom = headers.findIndex(h => h.includes('ukom'));
+                    let idxKeuangan = headers.findIndex(h => h.includes('keuangan') || h.includes('bayar'));
+                    let idxIpk = headers.findIndex(h => h.includes('ipk'));
+
+                    // Fallback manual jika header tidak terdeteksi
+                    if (idxNim === -1) idxNim = 1;
+                    if (idxNama === -1) idxNama = 2;
+                    if (idxPkl === -1) idxPkl = 4;
+                    if (idxMagang === -1) idxMagang = 5;
+                    if (idxKti === -1) idxKti = 6;
+                    if (idxOsce === -1) idxOsce = 7;
+                    if (idxUkom === -1) idxUkom = 8;
+                    if (idxKeuangan === -1) idxKeuangan = 9;
+                    if (idxIpk === -1) idxIpk = 10;
+
                     let parsed = [];
                     
                     for (let i = 1; i < rows.length; i++) {
                         let cols = rows[i];
                         if (!cols || cols.length < 3) continue;
 
-                        // Pemetaan Kolom Berdasarkan Google Sheets Terbaru:
-                        // cols[1] = NIM, cols[2] = Nama, cols[3] = Status Lulus (diabaikan)
-                        // cols[4] = PKL, cols[5] = Magang, cols[6] = KTI, cols[7] = OSCE, cols[8] = UKOM, cols[9] = Keuangan
-                        // cols[10] = IPK
-                        let pkl = cols[4] ? cols[4].trim() : '';
-                        let magang = cols[5] ? cols[5].trim() : '';
-                        let kti = cols[6] ? cols[6].trim() : '';
-                        let osce = cols[7] ? cols[7].trim() : '';
-                        let ukom = cols[8] ? cols[8].trim() : '';
-                        let keuangan = cols[9] ? cols[9].trim() : '';
+                        let nim = cols[idxNim] ? cols[idxNim].trim() : '-';
+                        let nama = cols[idxNama] ? cols[idxNama].trim() : '-';
+                        if (nim === '-' || nama === '-') continue;
+
+                        let pkl = cols[idxPkl] ? cols[idxPkl].trim() : '';
+                        let magang = cols[idxMagang] ? cols[idxMagang].trim() : '';
+                        let kti = cols[idxKti] ? cols[idxKti].trim() : '';
+                        let osce = cols[idxOsce] ? cols[idxOsce].trim() : '';
+                        let ukom = cols[idxUkom] ? cols[idxUkom].trim() : '';
+                        let keuangan = cols[idxKeuangan] ? cols[idxKeuangan].trim() : '';
 
                         let pendingList = [];
                         if (!isCompleted(pkl)) pendingList.push(pkl ? `PKL: ${pkl}` : `PKL`);
@@ -128,12 +154,12 @@
                         if (!isCompleted(ukom)) pendingList.push(ukom ? `UKOM: ${ukom}` : `UKOM`);
                         if (!isCompleted(keuangan)) pendingList.push(keuangan ? `Keuangan: ${keuangan}` : `Keuangan`);
 
-                        let rawIpk = cols[10] ? cols[10].replace(',', '.').trim() : '0';
+                        let rawIpk = cols[idxIpk] ? cols[idxIpk].toString().replace(',', '.').trim() : '0';
                         let parsedIpk = parseFloat(rawIpk) || 0;
 
                         parsed.push({
-                            nim: cols[1] || '-',
-                            nama: cols[2] || '-',
+                            nim: nim,
+                            nama: nama,
                             statusNote: pendingList.length === 0 ? 'Lengkap / Selesai' : pendingList.join(' | '),
                             isComplete: pendingList.length === 0,
                             ipk: parsedIpk
