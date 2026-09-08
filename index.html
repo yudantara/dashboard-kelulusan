@@ -79,7 +79,6 @@
     </div>
 
     <script>
-        // LINK GOOGLE SHEETS KAMU DENGAN TANDA PETIK (SUDAH DIPERBAIKI)
         const googleSheetsCSVUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_9UV6UKYLBOADKw9iqvyv5WetR3IXY5GW73grcv7ZHfS30bOTMpwElAfFooP_XuWMawcgQFPGXhcN/pub?gid=986781980&single=true&output=csv";
 
         let pieChartInstance = null;
@@ -108,14 +107,19 @@
                     for (let i = 1; i < rows.length; i++) {
                         let cols = rows[i];
                         if (!cols || cols.length < 3) continue;
+                        
                         let ktiVal = cols[5] ? cols[5].trim() : '';
                         let isDone = ktiVal === '✓' || ktiVal.toLowerCase() === 'v' || ktiVal.toLowerCase() === 'selesai' || ktiVal === '';
                         
+                        // PERBAIKAN FORMAT IPK: Mengubah koma ke titik agar desimal terbaca presisi
+                        let rawIpk = cols[9] ? cols[9].replace(',', '.').trim() : '0';
+                        let parsedIpk = parseFloat(rawIpk) || 0;
+
                         parsed.push({
                             nim: cols[1] || '-',
                             nama: cols[2] || '-',
                             kti: isDone ? 'Selesai' : ktiVal,
-                            ipk: parseFloat(cols[9]) || 0
+                            ipk: parsedIpk
                         });
                     }
                     
@@ -150,6 +154,9 @@
                 names.push(row.nama.split(" ")[0]);
                 ipks.push(row.ipk);
 
+                // FORMAT 2 DIGIT DESIMAL DI TABEL
+                let ipkFormatted = Number(row.ipk).toFixed(2);
+
                 let statusBadge = isLengkap 
                     ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
                     : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.kti}</span>`;
@@ -158,7 +165,7 @@
                     <tr class="hover:bg-gray-50 transition">
                         <td class="p-4 font-mono text-gray-500">${row.nim}</td>
                         <td class="p-4 font-semibold text-gray-800">${row.nama}</td>
-                        <td class="p-4 font-bold text-blue-900">${row.ipk}</td>
+                        <td class="p-4 font-bold text-blue-900">${ipkFormatted}</td>
                         <td class="p-4">${statusBadge}</td>
                     </tr>
                 `;
