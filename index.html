@@ -68,7 +68,7 @@
                             <th class="p-4">NIM</th>
                             <th class="p-4">NAMA MAHASISWA</th>
                             <th class="p-4">IPK</th>
-                            <th class="p-4">STATUS KELENGKAPAN BERKAS</th>
+                            <th class="p-4">STATUS KELENGKAPAN (6 KOMPONEN)</th>
                         </tr>
                     </thead>
                     <tbody id="table-body" class="text-sm divide-y divide-gray-100">
@@ -84,10 +84,11 @@
         let pieChartInstance = null;
         let barChartInstance = null;
 
+        // Fungsi pengecekan status indikator
         const checkValidDone = (val) => {
-            if (!val) return true;
+            if (!val || val.trim() === '') return false;
             let str = val.trim().toLowerCase();
-            return ['✓', 'v', 'selesai', 'lengkap', 'lunas', 'ok', 'pass'].includes(str);
+            return ['✓', 'v', 'selesai', 'lengkap', 'lunas', 'ok', 'pass', 'pass/lunas'].includes(str);
         };
 
         function loadData() {
@@ -125,7 +126,7 @@
                         parsed.push({
                             nim: cols[1] || '-',
                             nama: cols[2] || '-',
-                            statusNote: pendingList.length === 0 ? 'Selesai' : pendingList.join(' | '),
+                            statusNote: pendingList.length === 0 ? 'Lengkap / Selesai' : pendingList.join(' | '),
                             isComplete: pendingList.length === 0,
                             ipk: parsedIpk
                         });
@@ -160,6 +161,7 @@
 
                 let ipkFormatted = Number(row.ipk).toFixed(2);
 
+                // Badge Hijau jika 6 komponen selesai, Merah jika belum lengkap
                 let statusBadge = row.isComplete 
                     ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
                     : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.statusNote}</span>`;
