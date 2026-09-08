@@ -34,7 +34,7 @@
                 <p id="kpi-lengkap" class="text-3xl font-bold text-green-600">0</p>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-500">
-                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Terkendala Berkas KTI</h3>
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Belum Lengkap</h3>
                 <p id="kpi-kendala" class="text-3xl font-bold text-red-600">0</p>
             </div>
         </div>
@@ -68,7 +68,7 @@
                             <th class="p-4">NIM</th>
                             <th class="p-4">NAMA MAHASISWA</th>
                             <th class="p-4">IPK</th>
-                            <th class="p-4">STATUS KELENGKAPAN KTI</th>
+                            <th class="p-4">STATUS KELENGKAPAN BERKAS</th>
                         </tr>
                     </thead>
                     <tbody id="table-body" class="text-sm divide-y divide-gray-100">
@@ -84,15 +84,11 @@
         let pieChartInstance = null;
         let barChartInstance = null;
 
-        const mockData = [
-            { nim: "21134010", nama: "AMARA SALSABILA", kti: "Selesai", ipk: 3.64 },
-            { nim: "21134029", nama: "FITRI HERDILA SARI", kti: "Selesai", ipk: 3.21 },
-            { nim: "21134078", nama: "RAEDHO BAGAS RADITYA NUGRAHA", kti: "Belum Upload Softfile Naskah KTI di SIAKAD", ipk: 2.65 },
-            { nim: "21134117", nama: "TIRA PUSPITASARI", kti: "Selesai", ipk: 3.02 },
-            { nim: "21134K002", nama: "DINDA ASA BRILIANNISA PRATITI", kti: "Belum Mengumpulkan di Perpustakaan", ipk: 3.17 },
-            { nim: "21134K003", nama: "ANSFRIDUS AVIL VINEKO WIYAN", kti: "Belum Mengumpulkan di Perpustakaan", ipk: 3.48 },
-            { nim: "21134K004", nama: "ABDURRAHMAN IBNU WIJAYANTO", kti: "Belum Mengumpulkan di Perpustakaan", ipk: 3.35 }
-        ];
+        const checkValidDone = (val) => {
+            if (!val) return true;
+            let str = val.trim().toLowerCase();
+            return ['✓', 'v', 'selesai', 'lengkap', 'lunas', 'ok', 'pass'].includes(str);
+        };
 
         function loadData() {
             document.getElementById('status-koneksi').innerText = "Mengambil data terbaru...";
@@ -107,18 +103,30 @@
                     for (let i = 1; i < rows.length; i++) {
                         let cols = rows[i];
                         if (!cols || cols.length < 3) continue;
-                        
-                        let ktiVal = cols[5] ? cols[5].trim() : '';
-                        let isDone = ktiVal === '✓' || ktiVal.toLowerCase() === 'v' || ktiVal.toLowerCase() === 'selesai' || ktiVal === '';
-                        
-                        // PERBAIKAN FORMAT IPK: Mengubah koma ke titik agar desimal terbaca presisi
+
+                        let pkl = cols[3] ? cols[3].trim() : '';
+                        let magang = cols[4] ? cols[4].trim() : '';
+                        let kti = cols[5] ? cols[5].trim() : '';
+                        let osce = cols[6] ? cols[6].trim() : '';
+                        let ukom = cols[7] ? cols[7].trim() : '';
+                        let keuangan = cols[8] ? cols[8].trim() : '';
+
+                        let pendingList = [];
+                        if (!checkValidDone(pkl)) pendingList.push(pkl.toLowerCase().includes('belum') ? `PKL: ${pkl}` : `PKL`);
+                        if (!checkValidDone(magang)) pendingList.push(magang.toLowerCase().includes('belum') ? `Magang: ${magang}` : `Magang`);
+                        if (!checkValidDone(kti)) pendingList.push(kti.toLowerCase().includes('belum') ? `KTI: ${kti}` : `KTI`);
+                        if (!checkValidDone(osce)) pendingList.push(osce.toLowerCase().includes('belum') ? `OSCE: ${osce}` : `OSCE`);
+                        if (!checkValidDone(ukom)) pendingList.push(ukom.toLowerCase().includes('belum') ? `UKOM: ${ukom}` : `UKOM`);
+                        if (!checkValidDone(keuangan)) pendingList.push(keuangan.toLowerCase().includes('belum') ? `Keuangan: ${keuangan}` : `Keuangan`);
+
                         let rawIpk = cols[9] ? cols[9].replace(',', '.').trim() : '0';
                         let parsedIpk = parseFloat(rawIpk) || 0;
 
                         parsed.push({
                             nim: cols[1] || '-',
                             nama: cols[2] || '-',
-                            kti: isDone ? 'Selesai' : ktiVal,
+                            statusNote: pendingList.length === 0 ? 'Selesai' : pendingList.join(' | '),
+                            isComplete: pendingList.length === 0,
                             ipk: parsedIpk
                         });
                     }
@@ -127,13 +135,10 @@
                         renderDashboard(parsed);
                         document.getElementById('status-koneksi').innerText = "Terhubung & Real-Time";
                         document.getElementById('status-koneksi').className = "font-semibold text-green-600";
-                    } else {
-                        renderDashboard(mockData);
                     }
                 },
                 error: function(err) {
-                    renderDashboard(mockData);
-                    document.getElementById('status-koneksi').innerText = "Gagal memuat link. Menampilkan data demo.";
+                    document.getElementById('status-koneksi').innerText = "Gagal memuat data dari Google Sheets.";
                     document.getElementById('status-koneksi').className = "font-semibold text-red-600";
                 }
             });
@@ -148,18 +153,16 @@
             let tableHtml = "";
 
             data.forEach(row => {
-                let isLengkap = row.kti === "Selesai";
-                if (isLengkap) lengkap++; else kendala++;
+                if (row.isComplete) lengkap++; else kendala++;
                 
                 names.push(row.nama.split(" ")[0]);
                 ipks.push(row.ipk);
 
-                // FORMAT 2 DIGIT DESIMAL DI TABEL
                 let ipkFormatted = Number(row.ipk).toFixed(2);
 
-                let statusBadge = isLengkap 
+                let statusBadge = row.isComplete 
                     ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
-                    : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.kti}</span>`;
+                    : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.statusNote}</span>`;
 
                 tableHtml += `
                     <tr class="hover:bg-gray-50 transition">
@@ -182,7 +185,7 @@
             pieChartInstance = new Chart(document.getElementById('pieChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['Lengkap', 'Terkendala'],
+                    labels: ['Lengkap', 'Belum Lengkap'],
                     datasets: [{
                         data: [lengkap, kendala],
                         backgroundColor: ['#22c55e', '#ef4444'],
