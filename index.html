@@ -10,7 +10,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans p-6">
 
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         <header class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-blue-900">Dashboard Monitoring Kelulusan</h1>
@@ -24,7 +24,7 @@
         </header>
 
         <!-- KPI Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
                 <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Mahasiswa</h3>
                 <p id="kpi-total" class="text-3xl font-bold text-gray-800">0</p>
@@ -36,6 +36,10 @@
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-500">
                 <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Belum Lengkap</h3>
                 <p id="kpi-kendala" class="text-3xl font-bold text-red-600">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-yellow-400">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Cumlaude (IPK ≥ 3.51)</h3>
+                <p id="kpi-cumlaude" class="text-3xl font-bold text-yellow-600">0</p>
             </div>
         </div>
 
@@ -183,6 +187,7 @@
             let total = data.length;
             let lengkap = 0;
             let kendala = 0;
+            let cumlaude = 0;
             let names = [];
             let ipks = [];
             let barColors = [];
@@ -190,6 +195,7 @@
 
             data.forEach(row => {
                 if (row.isComplete) lengkap++; else kendala++;
+                if (row.ipk >= 3.51) cumlaude++; // Hitung jumlah Cumlaude
                 
                 names.push(row.nama.split(" ")[0]);
                 ipks.push(row.ipk);
@@ -221,6 +227,7 @@
             document.getElementById('kpi-total').innerText = total;
             document.getElementById('kpi-lengkap').innerText = lengkap;
             document.getElementById('kpi-kendala').innerText = kendala;
+            document.getElementById('kpi-cumlaude').innerText = cumlaude; // Menampilkan angka Cumlaude
             document.getElementById('table-body').innerHTML = tableHtml;
 
             if (pieChartInstance) pieChartInstance.destroy();
