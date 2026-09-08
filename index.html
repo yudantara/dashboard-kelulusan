@@ -84,11 +84,19 @@
         let pieChartInstance = null;
         let barChartInstance = null;
 
-        // Fungsi pengecekan status indikator
-        const checkValidDone = (val) => {
-            if (!val || val.trim() === '') return false;
+        // Pengecekan Kelengkapan: Mengakomodasi teks "Lengkap/Selesai", "Lengkap", "Selesai", "✓", dll.
+        const isCompleted = (val) => {
+            if (!val) return false;
             let str = val.trim().toLowerCase();
-            return ['✓', 'v', 'selesai', 'lengkap', 'lunas', 'ok', 'pass', 'pass/lunas'].includes(str);
+            
+            // Kata kunci yang menandakan LENGKAP / SELESAI
+            const validKeywords = ['✓', 'v', 'selesai', 'lengkap', 'lengkap/selesai', 'lunas', 'ok', 'pass', 'l'];
+            
+            if (validKeywords.some(kw => str.includes(kw))) {
+                // Pastikan tidak ada kata "belum" atau "tidak" di dalamnya
+                return !str.includes('belum') && !str.includes('tidak');
+            }
+            return false;
         };
 
         function loadData() {
@@ -113,12 +121,13 @@
                         let keuangan = cols[8] ? cols[8].trim() : '';
 
                         let pendingList = [];
-                        if (!checkValidDone(pkl)) pendingList.push(pkl.toLowerCase().includes('belum') ? `PKL: ${pkl}` : `PKL`);
-                        if (!checkValidDone(magang)) pendingList.push(magang.toLowerCase().includes('belum') ? `Magang: ${magang}` : `Magang`);
-                        if (!checkValidDone(kti)) pendingList.push(kti.toLowerCase().includes('belum') ? `KTI: ${kti}` : `KTI`);
-                        if (!checkValidDone(osce)) pendingList.push(osce.toLowerCase().includes('belum') ? `OSCE: ${osce}` : `OSCE`);
-                        if (!checkValidDone(ukom)) pendingList.push(ukom.toLowerCase().includes('belum') ? `UKOM: ${ukom}` : `UKOM`);
-                        if (!checkValidDone(keuangan)) pendingList.push(keuangan.toLowerCase().includes('belum') ? `Keuangan: ${keuangan}` : `Keuangan`);
+
+                        if (!isCompleted(pkl)) pendingList.push(pkl ? `PKL: ${pkl}` : `PKL`);
+                        if (!isCompleted(magang)) pendingList.push(magang ? `Magang: ${magang}` : `Magang`);
+                        if (!isCompleted(kti)) pendingList.push(kti ? `KTI: ${kti}` : `KTI`);
+                        if (!isCompleted(osce)) pendingList.push(osce ? `OSCE: ${osce}` : `OSCE`);
+                        if (!isCompleted(ukom)) pendingList.push(ukom ? `UKOM: ${ukom}` : `UKOM`);
+                        if (!isCompleted(keuangan)) pendingList.push(keuangan ? `Keuangan: ${keuangan}` : `Keuangan`);
 
                         let rawIpk = cols[9] ? cols[9].replace(',', '.').trim() : '0';
                         let parsedIpk = parseFloat(rawIpk) || 0;
@@ -161,7 +170,6 @@
 
                 let ipkFormatted = Number(row.ipk).toFixed(2);
 
-                // Badge Hijau jika 6 komponen selesai, Merah jika belum lengkap
                 let statusBadge = row.isComplete 
                     ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
                     : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.statusNote}</span>`;
