@@ -105,7 +105,7 @@
                     let rows = results.data;
                     if (!rows || rows.length < 2) return;
 
-                    // Cari posisi kolom secara otomatis berdasarkan teks baris pertama (Header)
+                    // Cari posisi kolom secara otomatis berdasarkan teks header
                     let headers = rows[0].map(h => h ? h.trim().toLowerCase() : '');
                     
                     let idxNim = headers.findIndex(h => h.includes('nim'));
@@ -118,7 +118,7 @@
                     let idxKeuangan = headers.findIndex(h => h.includes('keuangan') || h.includes('bayar'));
                     let idxIpk = headers.findIndex(h => h.includes('ipk'));
 
-                    // Fallback manual jika header tidak terdeteksi
+                    // Fallback posisi kolom manual jika header tidak terdeteksi
                     if (idxNim === -1) idxNim = 1;
                     if (idxNama === -1) idxNama = 2;
                     if (idxPkl === -1) idxPkl = 4;
@@ -185,6 +185,7 @@
             let kendala = 0;
             let names = [];
             let ipks = [];
+            let barColors = [];
             let tableHtml = "";
 
             data.forEach(row => {
@@ -192,8 +193,16 @@
                 
                 names.push(row.nama.split(" ")[0]);
                 ipks.push(row.ipk);
+                
+                // Warna batang grafik: Merah jika IPK < 2.75, Biru jika >= 2.75
+                barColors.push(row.ipk < 2.75 ? '#ef4444' : '#3b82f6');
 
                 let ipkFormatted = Number(row.ipk).toFixed(2);
+
+                // Highlight khusus IPK < 2.75
+                let ipkBadge = (row.ipk < 2.75) 
+                    ? `<span class="bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-md text-xs border border-red-300 inline-flex items-center gap-1">⚠️ ${ipkFormatted}</span>`
+                    : `<span class="font-bold text-blue-900">${ipkFormatted}</span>`;
 
                 let statusBadge = row.isComplete 
                     ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
@@ -203,7 +212,7 @@
                     <tr class="hover:bg-gray-50 transition">
                         <td class="p-4 font-mono text-gray-500">${row.nim}</td>
                         <td class="p-4 font-semibold text-gray-800">${row.nama}</td>
-                        <td class="p-4 font-bold text-blue-900">${ipkFormatted}</td>
+                        <td class="p-4">${ipkBadge}</td>
                         <td class="p-4">${statusBadge}</td>
                     </tr>
                 `;
@@ -237,7 +246,7 @@
                     datasets: [{
                         label: 'IPK',
                         data: ipks,
-                        backgroundColor: '#3b82f6',
+                        backgroundColor: barColors,
                         borderRadius: 6
                     }]
                 },
