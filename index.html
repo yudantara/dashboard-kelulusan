@@ -59,11 +59,19 @@
             </div>
         </div>
 
-        <!-- Data Table -->
+        <!-- Data Table with Filters -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+            <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 class="font-bold text-gray-700">Rincian Status & Catatan Berkas</h3>
-                <span class="text-xs text-gray-400">Otomatis terbarui dari Google Sheets</span>
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <input type="text" id="searchInput" placeholder="Cari nama / NIM..." onkeyup="filterAndRenderTable()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full sm:w-48">
+                    <select id="statusFilter" onchange="filterAndRenderTable()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                        <option value="all">Semua Status</option>
+                        <option value="lengkap">Lengkap</option>
+                        <option value="belum">Belum Lengkap</option>
+                        <option value="cumlaude">Cumlaude (IPK ≥ 3.51)</option>
+                    </select>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -87,10 +95,10 @@
 
         let pieChartInstance = null;
         let barChartInstance = null;
+        let globalData = []; // Menyimpan data mentah agar bisa difilter ulang
 
         const isCompleted = (val) => {
             if (!val) return false;
-            // Menghapus baris baru (enter) dari Google Sheets agar terbaca sejajar
             let str = val.replace(/\n/g, ' ').trim().toLowerCase();
             const validKeywords = ['✓', 'v', 'selesai', 'lengkap', 'lengkap/selesai', 'lunas', 'ok', 'pass', 'l'];
             
@@ -104,7 +112,6 @@
             document.getElementById('status-koneksi').innerText = "Mereset cache & Mengambil data...";
             document.getElementById('status-koneksi').className = "font-semibold text-yellow-600";
 
-            // TRICK CACHE BUSTER: Menambahkan timestamp acak di ujung link agar selalu mendownload versi terbaru
             const freshUrl = googleSheetsCSVUrl + "&_t=" + new Date().getTime();
 
             Papa.parse(freshUrl, {
@@ -113,7 +120,6 @@
                     let rows = results.data;
                     if (!rows || rows.length < 2) return;
 
-                    // Mencari baris header dengan lebih presisi (scan 10 baris pertama)
                     let headerRowIndex = 0;
                     for (let r = 0; r < Math.min(10, rows.length); r++) {
                         let temp = rows[r].map(h => h ? h.toString().toLowerCase() : '');
@@ -135,7 +141,6 @@
                     let idxKeuangan = headers.findIndex(h => h.includes('keuangan') || h.includes('bayar'));
                     let idxIpk = headers.findIndex(h => h.includes('ipk'));
 
-                    // Fallback jika judul tidak ketemu
                     if (idxNim === -1) idxNim = 2;
                     if (idxNama === -1) idxNama = 3;
                     if (idxPkl === -1) idxPkl = 4;
@@ -148,7 +153,6 @@
 
                     let parsed = [];
                     
-                    // Parsing dimulai SETELAH baris header
                     for (let i = headerRowIndex + 1; i < rows.length; i++) {
                         let cols = rows[i];
                         if (!cols || cols.length < 3) continue;
@@ -185,7 +189,8 @@
                     }
                     
                     if (parsed.length > 0) {
-                        renderDashboard(parsed);
+                        globalData = parsed;
+                        renderDashboard(globalData);
                         document.getElementById('status-koneksi').innerText = "Terhubung & Real-Time";
                         document.getElementById('status-koneksi').className = "font-semibold text-green-600";
                     }
@@ -198,49 +203,29 @@
         }
 
         function renderDashboard(data) {
-            let total = data.length;
+            let total = globalData.length;
             let lengkap = 0;
             let kendala = 0;
             let cumlaude = 0;
             let names = [];
             let ipks = [];
             let barColors = [];
-            let tableHtml = "";
 
-            data.forEach(row => {
+            globalData.forEach(row => {
                 if (row.isComplete) lengkap++; else kendala++;
                 if (row.ipk >= 3.51) cumlaude++;
                 
                 names.push(row.nama.split(" ")[0]);
                 ipks.push(row.ipk);
-                
                 barColors.push(row.ipk < 2.75 ? '#ef4444' : '#3b82f6');
-
-                let ipkFormatted = Number(row.ipk).toFixed(2);
-
-                let ipkBadge = (row.ipk < 2.75) 
-                    ? `<span class="bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-md text-xs border border-red-300 inline-flex items-center gap-1">⚠️ ${ipkFormatted}</span>`
-                    : `<span class="font-bold text-blue-900">${ipkFormatted}</span>`;
-
-                let statusBadge = row.isComplete 
-                    ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
-                    : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.statusNote}</span>`;
-
-                tableHtml += `
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="p-4 font-mono text-gray-500">${row.nim}</td>
-                        <td class="p-4 font-semibold text-gray-800">${row.nama}</td>
-                        <td class="p-4">${ipkBadge}</td>
-                        <td class="p-4">${statusBadge}</td>
-                    </tr>
-                `;
             });
 
             document.getElementById('kpi-total').innerText = total;
             document.getElementById('kpi-lengkap').innerText = lengkap;
             document.getElementById('kpi-kendala').innerText = kendala;
             document.getElementById('kpi-cumlaude').innerText = cumlaude;
-            document.getElementById('table-body').innerHTML = tableHtml;
+
+            filterAndRenderTable();
 
             if (pieChartInstance) pieChartInstance.destroy();
             if (barChartInstance) barChartInstance.destroy();
@@ -275,6 +260,54 @@
                     scales: { y: { min: 2.0, max: 4.0 } }
                 }
             });
+        }
+
+        function filterAndRenderTable() {
+            let keyword = document.getElementById('searchInput').value.toLowerCase();
+            let statusVal = document.getElementById('statusFilter').value;
+
+            let filtered = globalData.filter(row => {
+                let matchKeyword = row.nama.toLowerCase().includes(keyword) || row.nim.toLowerCase().includes(keyword);
+                
+                let matchStatus = true;
+                if (statusVal === 'lengkap') {
+                    matchStatus = row.isComplete;
+                } else if (statusVal === 'belum') {
+                    matchStatus = !row.isComplete;
+                } else if (statusVal === 'cumlaude') {
+                    matchStatus = row.ipk >= 3.51;
+                }
+
+                return matchKeyword && matchStatus;
+            });
+
+            let tableHtml = "";
+            filtered.forEach(row => {
+                let ipkFormatted = Number(row.ipk).toFixed(2);
+
+                let ipkBadge = (row.ipk < 2.75) 
+                    ? `<span class="bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-md text-xs border border-red-300 inline-flex items-center gap-1">⚠️ ${ipkFormatted}</span>`
+                    : `<span class="font-bold text-blue-900">${ipkFormatted}</span>`;
+
+                let statusBadge = row.isComplete 
+                    ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
+                    : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.statusNote}</span>`;
+
+                tableHtml += `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4 font-mono text-gray-500">${row.nim}</td>
+                        <td class="p-4 font-semibold text-gray-800">${row.nama}</td>
+                        <td class="p-4">${ipkBadge}</td>
+                        <td class="p-4">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            if (filtered.length === 0) {
+                tableHtml = `<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada data yang cocok dengan pencarian atau filter.</td></tr>`;
+            }
+
+            document.getElementById('table-body').innerHTML = tableHtml;
         }
 
         loadData();
