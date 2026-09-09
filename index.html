@@ -77,7 +77,7 @@
                 <div class="flex flex-wrap gap-2 w-full sm:w-auto">
                     <input type="text" id="searchInput" placeholder="Cari nama / NIM..." onkeyup="filterAndRenderTable()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full sm:w-48">
                     <select id="statusFilter" onchange="filterAndRenderTable()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 bg-white">
-                        <option value="all">Semua Status</option>
+                        <option value="all">Semua Status & Kelas</option>
                         <option value="reguler">Kelas Reguler</option>
                         <option value="karyawan">Kelas Karyawan</option>
                         <option value="lengkap">Berkas Lengkap</option>
@@ -176,8 +176,13 @@
                         let nama = cols[idxNama] ? cols[idxNama].trim() : '-';
                         if (nim === '-' || nama === '-') continue;
 
+                        // Pengecekan Karyawan via Huruf 'K' pada NIM atau kolom Kelas
                         let rawKelas = idxKelas !== -1 && cols[idxKelas] ? cols[idxKelas].trim() : '';
-                        let isKaryawan = rawKelas.toLowerCase().includes('karyawan') || rawKelas.toLowerCase().includes('kar') || rawKelas.toLowerCase().includes('non');
+                        let isKaryawan = nim.toLowerCase().includes('k') || 
+                                         rawKelas.toLowerCase().includes('karyawan') || 
+                                         rawKelas.toLowerCase().includes('kar') || 
+                                         rawKelas.toLowerCase().includes('non');
+                        
                         let jenisKelas = isKaryawan ? 'Karyawan' : 'Reguler';
 
                         let pkl = cols[idxPkl] ? cols[idxPkl].trim() : '';
