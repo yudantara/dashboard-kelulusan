@@ -13,7 +13,6 @@
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-                <!-- Judul Utama & Prodi di Bawah -->
                 <h1 class="text-3xl font-bold text-blue-900 leading-snug">
                     Dashboard General Yudisium 2026<br>
                     <span class="text-xl font-semibold text-blue-700">Prodi D3 RMIK Poltekkes Bhakti Setya Indonesia</span>
@@ -27,22 +26,30 @@
             </button>
         </header>
 
-        <!-- KPI Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
+        <!-- KPI Cards (6 Kolom) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
                 <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Mahasiswa</h3>
                 <p id="kpi-total" class="text-3xl font-bold text-gray-800">0</p>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-green-500">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-indigo-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Kelas Reguler</h3>
+                <p id="kpi-reguler" class="text-3xl font-bold text-indigo-600">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-purple-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Kelas Karyawan</h3>
+                <p id="kpi-karyawan" class="text-3xl font-bold text-purple-600">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-green-500">
                 <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Berkas Lengkap</h3>
                 <p id="kpi-lengkap" class="text-3xl font-bold text-green-600">0</p>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-500">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-500">
                 <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Belum Lengkap</h3>
                 <p id="kpi-kendala" class="text-3xl font-bold text-red-600">0</p>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-yellow-400">
-                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Cumlaude (IPK ≥ 3.51)</h3>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-yellow-400">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Cumlaude (≥ 3.51)</h3>
                 <p id="kpi-cumlaude" class="text-3xl font-bold text-yellow-600">0</p>
             </div>
         </div>
@@ -71,8 +78,10 @@
                     <input type="text" id="searchInput" placeholder="Cari nama / NIM..." onkeyup="filterAndRenderTable()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full sm:w-48">
                     <select id="statusFilter" onchange="filterAndRenderTable()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 bg-white">
                         <option value="all">Semua Status</option>
-                        <option value="lengkap">Lengkap</option>
-                        <option value="belum">Belum Lengkap</option>
+                        <option value="reguler">Kelas Reguler</option>
+                        <option value="karyawan">Kelas Karyawan</option>
+                        <option value="lengkap">Berkas Lengkap</option>
+                        <option value="belum">Berkas Belum Lengkap</option>
                         <option value="cumlaude">Cumlaude (IPK ≥ 3.51)</option>
                     </select>
                 </div>
@@ -83,6 +92,7 @@
                         <tr class="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-100">
                             <th class="p-4">NIM</th>
                             <th class="p-4">NAMA MAHASISWA</th>
+                            <th class="p-4">KELAS</th>
                             <th class="p-4">IPK</th>
                             <th class="p-4">STATUS KELENGKAPAN (6 KOMPONEN)</th>
                         </tr>
@@ -137,6 +147,7 @@
                     
                     let idxNim = headers.findIndex(h => h.includes('nim'));
                     let idxNama = headers.findIndex(h => h.includes('nama') || h.includes('mahasiswa'));
+                    let idxKelas = headers.findIndex(h => h.includes('kelas') || h.includes('program') || h.includes('jenis') || h.includes('jalur'));
                     let idxPkl = headers.findIndex(h => h.includes('pkl') || h.includes('praktek'));
                     let idxMagang = headers.findIndex(h => h.includes('magang'));
                     let idxKti = headers.findIndex(h => h.includes('kti') || h.includes('naskah'));
@@ -165,6 +176,10 @@
                         let nama = cols[idxNama] ? cols[idxNama].trim() : '-';
                         if (nim === '-' || nama === '-') continue;
 
+                        let rawKelas = idxKelas !== -1 && cols[idxKelas] ? cols[idxKelas].trim() : '';
+                        let isKaryawan = rawKelas.toLowerCase().includes('karyawan') || rawKelas.toLowerCase().includes('kar') || rawKelas.toLowerCase().includes('non');
+                        let jenisKelas = isKaryawan ? 'Karyawan' : 'Reguler';
+
                         let pkl = cols[idxPkl] ? cols[idxPkl].trim() : '';
                         let magang = cols[idxMagang] ? cols[idxMagang].trim() : '';
                         let kti = cols[idxKti] ? cols[idxKti].trim() : '';
@@ -186,6 +201,7 @@
                         parsed.push({
                             nim: nim,
                             nama: nama,
+                            kelas: jenisKelas,
                             statusNote: pendingList.length === 0 ? 'Lengkap / Selesai' : pendingList.join(' | '),
                             isComplete: pendingList.length === 0,
                             ipk: parsedIpk
@@ -211,6 +227,9 @@
             let lengkap = 0;
             let kendala = 0;
             let cumlaude = 0;
+            let reguler = 0;
+            let karyawan = 0;
+            
             let names = [];
             let ipks = [];
             let barColors = [];
@@ -218,6 +237,7 @@
             globalData.forEach(row => {
                 if (row.isComplete) lengkap++; else kendala++;
                 if (row.ipk >= 3.51) cumlaude++;
+                if (row.kelas === 'Karyawan') karyawan++; else reguler++;
                 
                 names.push(row.nama.split(" ")[0]);
                 ipks.push(row.ipk);
@@ -225,6 +245,8 @@
             });
 
             document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-reguler').innerText = reguler;
+            document.getElementById('kpi-karyawan').innerText = karyawan;
             document.getElementById('kpi-lengkap').innerText = lengkap;
             document.getElementById('kpi-kendala').innerText = kendala;
             document.getElementById('kpi-cumlaude').innerText = cumlaude;
@@ -280,6 +302,10 @@
                     matchStatus = !row.isComplete;
                 } else if (statusVal === 'cumlaude') {
                     matchStatus = row.ipk >= 3.51;
+                } else if (statusVal === 'reguler') {
+                    matchStatus = row.kelas === 'Reguler';
+                } else if (statusVal === 'karyawan') {
+                    matchStatus = row.kelas === 'Karyawan';
                 }
 
                 return matchKeyword && matchStatus;
@@ -297,10 +323,15 @@
                     ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Lengkap / Selesai</span>` 
                     : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">${row.statusNote}</span>`;
 
+                let kelasBadge = (row.kelas === 'Karyawan')
+                    ? `<span class="bg-purple-100 text-purple-700 font-medium px-2.5 py-0.5 rounded text-xs border border-purple-200">Karyawan</span>`
+                    : `<span class="bg-indigo-100 text-indigo-700 font-medium px-2.5 py-0.5 rounded text-xs border border-indigo-200">Reguler</span>`;
+
                 tableHtml += `
                     <tr class="hover:bg-gray-50 transition">
                         <td class="p-4 font-mono text-gray-500">${row.nim}</td>
                         <td class="p-4 font-semibold text-gray-800">${row.nama}</td>
+                        <td class="p-4">${kelasBadge}</td>
                         <td class="p-4">${ipkBadge}</td>
                         <td class="p-4">${statusBadge}</td>
                     </tr>
@@ -308,7 +339,7 @@
             });
 
             if (filtered.length === 0) {
-                tableHtml = `<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada data yang cocok dengan pencarian atau filter.</td></tr>`;
+                tableHtml = `<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data yang cocok dengan pencarian atau filter.</td></tr>`;
             }
 
             document.getElementById('table-body').innerHTML = tableHtml;
